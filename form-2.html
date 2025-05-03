@@ -60,14 +60,24 @@
   // Ganti YOUR_FONNTE_API_KEY dengan API key Fonnte Anda
   function getUrlParameters() {
     const params = new URLSearchParams(window.location.search);
+    const getParamInsensitive = (key) => {
+      key = key.toLowerCase();
+      for (const [k, v] of params.entries()) {
+        if (k.toLowerCase() === key) {
+          return v;
+        }
+      }
+      return null;
+    };
+
     return {
-      formId: params.get('form') || null,
-      productId: params.get('sub') || null,
-      campaignId: params.get('CampaignID') || null,
-      adsetId: params.get('adSETID') || null,
-      adsId: params.get('CreativeID') || null,
-      clickId: params.get('click_id') || null,
-      pixelId: params.get('pixel_id') || null
+      formId: getParamInsensitive('form') || null,
+      productId: getParamInsensitive('sub') || null,
+      campaignId: getParamInsensitive('CampaignID') || getParamInsensitive('campaign_id') || null,
+      adsetId: getParamInsensitive('adSETID') || getParamInsensitive('ad_set_id') || null,
+      adsId: getParamInsensitive('CreativeID') || getParamInsensitive('adsId') || getParamInsensitive('ads_id') || null,
+      clickId: getParamInsensitive('click_id') || null,
+      pixelId: getParamInsensitive('pixel_id') || null
     };
   }
   
