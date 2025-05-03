@@ -74,7 +74,13 @@
   window.onload = function() {
     const timeoutLimit = 15000;
     let timeoutId;
-    
+
+    const initialForm = document.querySelectorAll('.orderonline-embed-form');
+    if (initialForm.length > 0 && initialForm[0].querySelectorAll('input').length > 0) {
+      setupValidation(initialForm);
+      return;
+    }
+  
     const observer = new MutationObserver(() => {
       const forms = document.querySelectorAll('.orderonline-embed-form');
       if (forms.length > 0) {
