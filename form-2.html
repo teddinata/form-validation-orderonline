@@ -59,23 +59,31 @@
 // OrderOnline Form Validator - Script Lengkap
 // Ganti YOUR_FONNTE_API_KEY dengan API key Fonnte Anda
 
-document.addEventListener('DOMContentLoaded', function() {
-  // Tunggu sampai OrderOnline script selesai loading
-  const waitForForm = setInterval(() => {
-    // Cek semua form yang ada
+window.onload = function() {
+  const timeoutLimit = 15000;
+  let timeoutId;
+
+  const observer = new MutationObserver(() => {
     const forms = document.querySelectorAll('.orderonline-embed-form');
     if (forms.length > 0) {
-      clearInterval(waitForForm);
+      clearTimeout(timeoutId);
+      observer.disconnect();
       setupValidation(forms);
     }
-  }, 1000);
-  
-  // Set timeout setelah 15 detik jika form tidak ditemukan
-  setTimeout(() => {
-    clearInterval(waitForForm);
+  });
+
+  // Start observing changes in the DOM
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+
+  // Fallback timeout if form doesn't appear in time
+  timeoutId = setTimeout(() => {
+    observer.disconnect();
     console.error('Form OrderOnline tidak ditemukan dalam 15 detik');
-  }, 15000);
-});
+  }, timeoutLimit);
+}
 
 function setupValidation(forms) {
   forms.forEach(form => {
