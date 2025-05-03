@@ -36,7 +36,7 @@
   
     const observer = new MutationObserver(() => {
       const forms = document.querySelectorAll('.orderonline-embed-form');
-      if (forms.length > 0) {
+      if (forms.length > 0 && forms[0].querySelectorAll('input').length > 0) {
         clearTimeout(timeoutId);
         observer.disconnect();
         setupValidation(forms);
