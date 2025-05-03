@@ -74,7 +74,7 @@
   window.onload = function() {
     const timeoutLimit = 15000;
     let timeoutId;
-  
+    
     const observer = new MutationObserver(() => {
       const forms = document.querySelectorAll('.orderonline-embed-form');
       if (forms.length > 0) {
@@ -627,9 +627,26 @@
       
       // Jalankan pengecekan WhatsApp
       const isWhatsApp = await checkWhatsAppNumber(value);
+
+      const isWhatsAppRegistered = await checkWhatsAppNumberRegistered(value);
       
       if (!isWhatsApp) {
         showError(phoneInput, errorLabel, 'Nomor tidak terdaftar di WhatsApp');
+        
+        // Kembalikan tombol ke keadaan normal namun tetap disabled
+        submitButtons.forEach(button => {
+          const originalText = button.getAttribute('data-original-text');
+          button.innerHTML = originalText;
+          button.disabled = true;
+          button.style.opacity = '0.7';
+          button.style.cursor = 'not-allowed';
+        });
+        
+        return false;
+      }
+
+      if (!isWhatsAppRegistered) {
+        showError(phoneInput, errorLabel, 'Nomor sudah terdaftar. Silakan hubungi sales kami.');
         
         // Kembalikan tombol ke keadaan normal namun tetap disabled
         submitButtons.forEach(button => {
@@ -729,6 +746,39 @@
         console.error('Error validating WhatsApp number: Invalid API response', data);
         return false;
       }
+    } catch (error) {
+      console.error('Error checking WhatsApp number:', error);
+      // Jika tidak bisa mengecek, throw error untuk ditangani oleh fungsi pemanggil
+      throw error;
+    }
+  }
+
+  // Fungsi untuk memeriksa nomor WhatsApp via API Database
+  async function checkWhatsAppNumberRegistered(phoneNumber) {
+    // Normalisasi nomor telepon ke format internasional
+    let normalizedNumber = phoneNumber;
+    if (phoneNumber.startsWith('0')) {
+      normalizedNumber = '62' + phoneNumber.substring(1);
+    } else if (phoneNumber.startsWith('+62')) {
+      normalizedNumber = phoneNumber.substring(1);
+    }
+
+    // URL API Database untuk validasi nomor WhatsApp terdaftar
+    const apiUrl = 'https://pnglabs.my.id/api/form/input/index';
+    
+    try {
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const data = await response.json();
+      var isPhoneExist = data.data.some(item => item.nomor_hp.slice(-9) === normalizedNumber.slice(-9));
+
+      return isPhoneExist === false;
+
     } catch (error) {
       console.error('Error checking WhatsApp number:', error);
       // Jika tidak bisa mengecek, throw error untuk ditangani oleh fungsi pemanggil
