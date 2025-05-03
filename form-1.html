@@ -57,6 +57,19 @@
 <script>
 // OrderOnline Form Validator - Script Lengkap
 // Ganti YOUR_FONNTE_API_KEY dengan API key Fonnte Anda
+function getUrlParameters() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    formId: params.get('form') || null,
+    productId: params.get('sub') || null,
+    campaignId: params.get('CampaignID') || null,
+    adsetId: params.get('adSETID') || null,
+    adsId: params.get('CreativeID') || null,
+    clickId: params.get('click_id') || null,
+    pixelId: params.get('pixel_id') || null
+  };
+}
+
 window.onload = function() {
   const timeoutLimit = 15000;
   let timeoutId;
@@ -83,8 +96,88 @@ window.onload = function() {
   }, timeoutLimit);
 }
 
+// Fungsi untuk mengirim data ke API
+async function submitToAPI(formData) {
+  try {
+    // Endpoint API Anda
+    const apiEndpoint = 'https://pnglabs.my.id/api/form/input';
+    
+    console.log('Mengirim data ke API:', formData);
+    
+    // Kirim data ke API
+    const response = await fetch(apiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData)
+    });
+    
+    // Periksa status response
+    if (!response.ok) {
+      throw new Error(`Error: ${response.status} ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    console.log('API Response:', result);
+    return result;
+  } catch (error) {
+    console.error('Error submitting form data to API:', error);
+    throw error;
+  }
+}
+
+// Fungsi untuk menampilkan status pengiriman ke API
+function showAPIStatus(form, status, message) {
+  // Hapus notifikasi yang sudah ada (jika ada)
+  const existingNotif = form.querySelector('.api-status-notification');
+  if (existingNotif) {
+    existingNotif.remove();
+  }
+  
+  // Buat notifikasi baru
+  const notification = document.createElement('div');
+  notification.className = 'api-status-notification';
+  notification.style.padding = '10px';
+  notification.style.marginBottom = '15px';
+  notification.style.borderRadius = '4px';
+  notification.style.fontSize = '14px';
+  
+  if (status === 'loading') {
+    notification.style.backgroundColor = '#e2f3fd';
+    notification.style.color = '#0c5460';
+    notification.textContent = 'Mengirim data...';
+  } else if (status === 'success') {
+    notification.style.backgroundColor = '#d4edda';
+    notification.style.color = '#155724';
+    notification.textContent = message || 'Data berhasil disimpan!';
+  } else if (status === 'error') {
+    notification.style.backgroundColor = '#f8d7da';
+    notification.style.color = '#721c24';
+    notification.textContent = message || 'Gagal menyimpan data. Silakan coba lagi.';
+  }
+  
+  // Tambahkan notifikasi ke form
+  form.insertBefore(notification, form.firstChild);
+  
+  // Hapus notifikasi setelah beberapa detik (kecuali jika error)
+  if (status !== 'error') {
+    setTimeout(() => {
+      notification.remove();
+    }, 5000);
+  }
+}
+
 function setupValidation(forms) {
   forms.forEach(form => {
+    // Cek apakah form sudah di-setup sebelumnya
+    if (form.hasAttribute('data-validation-initialized')) {
+      return; // Lewati jika sudah di-setup
+    }
+    
+    // Tandai form ini sudah di-setup
+    form.setAttribute('data-validation-initialized', 'true');
+    
     // Mencari input fields dalam form
     const nameInputs = form.querySelectorAll('input[name*="name"], input[placeholder*="nama"], input[placeholder*="Name"]');
     const phoneInputs = form.querySelectorAll('input[name*="phone"], input[name*="telp"], input[placeholder*="telepon"], input[placeholder*="hp"], input[placeholder*="HP"]');
@@ -106,7 +199,7 @@ function setupValidation(forms) {
           e.preventDefault();
           e.stopPropagation();
         } else {
-          // Jika validasi sukses, simpan timestamp di localStorage
+          // Form valid, simpan timestamp di localStorage
           saveSubmissionTimestamp();
         }
       });
@@ -174,21 +267,28 @@ function validateForm(form) {
   // Validasi semua field
   let isValid = true;
   
+  // Kumpulkan data untuk API
+  let nama = '';
+  let nomor_hp = '';
+  let alamat = '';
+  
   // Validasi nama
   const nameInputs = form.querySelectorAll('input[name*="name"], input[placeholder*="nama"], input[placeholder*="Name"]');
   nameInputs.forEach(input => {
     if (!validateName(input)) {
       isValid = false;
+    } else {
+      nama = input.value.trim();
     }
   });
   
   // Validasi phone
   const phoneInputs = form.querySelectorAll('input[name*="phone"], input[name*="telp"], input[placeholder*="telepon"], input[placeholder*="hp"], input[placeholder*="HP"]');
   phoneInputs.forEach(input => {
-    // Validasi dasar nomor telepon saja di sini
-    // Validasi WhatsApp sudah dilakukan saat input blur dan submit button sudah dinonaktifkan jika tidak valid
     if (!validatePhoneBasic(input)) {
       isValid = false;
+    } else {
+      nomor_hp = input.value.trim();
     }
   });
   
@@ -197,8 +297,47 @@ function validateForm(form) {
   addressInputs.forEach(input => {
     if (!validateAddress(input)) {
       isValid = false;
+    } else {
+      alamat = input.value.trim();
     }
   });
+  
+  // Jika form valid, proses dan kirim data ke API
+  if (isValid) {
+    // Dapatkan parameter dari URL
+    const urlParams = getUrlParameters();
+    
+    // Dapatkan product info dari form attributes atau URL
+    const productName = form.getAttribute('data-product-slug') || '';
+    const productId = form.getAttribute('data-product-id') || urlParams.productId || '';
+    const formId = form.getAttribute('id') || urlParams.formId || '';
+    
+    // Persiapkan data untuk API
+    const apiData = {
+      "nama": nama,
+      "nomor_hp": nomor_hp,
+      "alamat": alamat, 
+      "formId": formId,
+      "product": productName && productId ? `${productName}${productId}` : null,
+      "campaignId": urlParams.campaignId || null,
+      "adsetId": urlParams.adsetId || null,
+      "adsId": urlParams.adsId || null
+    };
+    
+    // Tampilkan status loading
+    showAPIStatus(form, 'loading');
+    
+    // Kirim data ke API
+    submitToAPI(apiData)
+      .then(result => {
+        console.log('Data berhasil disimpan ke API:', result);
+        showAPIStatus(form, 'success', 'Data berhasil disimpan!');
+      })
+      .catch(error => {
+        console.error('Gagal menyimpan data ke API:', error);
+        showAPIStatus(form, 'error', 'Gagal menyimpan data: ' + error.message);
+      });
+  }
   
   return isValid;
 }
@@ -238,7 +377,6 @@ function validateName(input) {
   }
   
   // Validasi: tidak boleh 3 huruf konsonan berturut-turut
-  // Pengecekan konsonan yang lebih akurat
   const words = value.split(/\s+/);
   
   for (let word of words) {
@@ -347,13 +485,29 @@ function showError(input, errorLabel, message) {
   }
 }
 
-// Fungsi untuk menambahkan panduan format alamat
+// Fungsi untuk menambahkan panduan format alamat dengan perbaikan
 function addAddressGuidance() {
   const forms = document.querySelectorAll('.orderonline-embed-form');
   forms.forEach(form => {
+    // Cek apakah form sudah ditambahkan panduan alamat
+    if (form.hasAttribute('data-address-guidance-added')) {
+      return; // Lewati jika sudah ditambahkan sebelumnya
+    }
+    
+    // Tandai form ini sudah ditambahkan panduan
+    form.setAttribute('data-address-guidance-added', 'true');
+    
     const addressInputs = form.querySelectorAll('textarea[name*="address"], textarea[placeholder*="alamat"], textarea[placeholder*="Address"]');
     
     addressInputs.forEach(input => {
+      // Cek apakah input sudah ditambahkan panduan
+      if (input.hasAttribute('data-guidance-added')) {
+        return; // Lewati jika sudah ditambahkan sebelumnya
+      }
+      
+      // Tandai input ini sudah ditambahkan panduan
+      input.setAttribute('data-guidance-added', 'true');
+      
       // Buat elemen bantuan
       const helpText = document.createElement('div');
       helpText.style.fontSize = '12px';
@@ -364,15 +518,13 @@ function addAddressGuidance() {
       // Tambahkan sebelum input
       input.parentNode.insertBefore(helpText, input);
       
-      // Update placeholder jika ada
-      if (input.placeholder) {
+      // Update placeholder jika ada dan belum dimodifikasi
+      if (input.placeholder && !input.placeholder.includes('(min. 25 karakter)')) {
         input.placeholder += ' (min. 25 karakter)';
       }
     });
   });
 }
-
-// -------------------- Fungsi Validasi WhatsApp dan Disable Button --------------------
 
 // Fungsi untuk setup validasi WhatsApp
 function setupWhatsAppValidation(forms) {
@@ -541,7 +693,6 @@ async function validateWhatsAppAndToggleButton(phoneInput) {
 }
 
 // Fungsi untuk memeriksa nomor WhatsApp via API Fonnte
-// Fungsi untuk memeriksa nomor WhatsApp via API Fonnte dengan endpoint yang benar
 async function checkWhatsAppNumber(phoneNumber) {
   // Normalisasi nomor telepon ke format internasional
   let normalizedNumber = phoneNumber;
