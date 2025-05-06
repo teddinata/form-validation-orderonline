@@ -349,7 +349,7 @@
         // Cek apakah huruf konsonan
         if ('bcdfghjklmnpqrstvwxyz'.includes(char)) {
           consonantCount++;
-          if (consonantCount >= 4) {
+          if (consonantCount >= 5) {
             hasConsecutiveConsonants = true;
             break;
           }
