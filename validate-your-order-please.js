@@ -298,7 +298,7 @@
     
     return isValid;
   }
-  
+
   function validateName(input) {
     const value = input.value.trim();
     const errorLabel = input.nextElementSibling;
@@ -333,15 +333,15 @@
       return false;
     }
     
-    // Validasi: tidak boleh 3 huruf konsonan berturut-turut
+    // Validasi: tidak boleh 4 huruf konsonan berturut-turut
     const words = value.split(/\s+/);
     
     for (let word of words) {
       // Ubah ke lowercase untuk mempermudah
       const wordLower = word.toLowerCase();
       
-      // Cek apakah ada 3 konsonan berurutan
-      let hasThreeConsecutiveConsonants = false;
+      // Cek apakah ada 4 konsonan berurutan
+      let hasConsecutiveConsonants = false;
       let consonantCount = 0;
       
       for (let i = 0; i < wordLower.length; i++) {
@@ -349,8 +349,8 @@
         // Cek apakah huruf konsonan
         if ('bcdfghjklmnpqrstvwxyz'.includes(char)) {
           consonantCount++;
-          if (consonantCount >= 3) {
-            hasThreeConsecutiveConsonants = true;
+          if (consonantCount >= 4) {
+            hasConsecutiveConsonants = true;
             break;
           }
         } else if ('aeiou'.includes(char)) {
@@ -359,8 +359,8 @@
         }
       }
       
-      if (hasThreeConsecutiveConsonants) {
-        showError(input, errorLabel, 'Nama tidak boleh mengandung 3 huruf konsonan berturut-turut');
+      if (hasConsecutiveConsonants) {
+        showError(input, errorLabel, 'Nama tidak boleh mengandung 4 huruf konsonan berturut-turut');
         return false;
       }
     }
