@@ -308,6 +308,11 @@
     if (errorLabel && errorLabel.className === 'name-error') {
       errorLabel.style.display = 'none';
     }
+
+    if (value.toLowerCase() == 'bono') {
+      showError(input, errorLabel, 'Nama tidak boleh kosong');
+      return false;
+    }
     
     // Validasi: tidak boleh kosong
     if (!value) {
